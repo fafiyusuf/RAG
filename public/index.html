@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RAG UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Simple CSS for auto-growing textarea */
+      #queryText {
+        field-sizing: content;
+        min-height: 46px; /* Approx h of a 1-row textarea + padding */
+        max-height: 200px;
+      }
+      /* Hide spinner by default */
+      .spinner {
+        display: none;
+      }
+      /* Show spinner on disabled buttons */
+      button:disabled .spinner {
+        display: inline-block;
+      }
+      /* Hide text on disabled buttons */
+      button:disabled .btn-text {
+        display: none;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-900">
+    <header class="bg-white border-b sticky top-0 z-10">
+      <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <h1 class="text-xl font-semibold">RAG Playground</h1>
+      </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-8">
+      <nav class="flex justify-start items-center mb-8 border-b">
+        <div class="flex gap-2">
+          <button
+            id="navChat"
+            class="px-4 py-3 -mb-px border-b-2 border-transparent font-semibold text-gray-700 hover:text-indigo-700 hover:border-indigo-500 focus:outline-none"
+          >
+            Chatbot
+          </button>
+          <button
+            id="navEmbed"
+            class="px-4 py-3 -mb-px border-b-2 border-transparent font-semibold text-gray-700 hover:text-indigo-700 hover:border-indigo-500 focus:outline-none"
+          >
+            Add New Info
+          </button>
+        </div>
+      </nav>
+
+      <section id="chatPage" class="bg-white rounded-xl shadow-lg border p-6 relative">
+        <h2 class="text-xl font-bold mb-4">Chatbot</h2>
+        <div
+          id="chatWindow"
+          class="h-96 overflow-y-auto bg-gray-50 border rounded-lg p-4 mb-4 flex flex-col gap-3"
+        ></div>
+        <form id="chatForm" class="flex gap-2 items-start">
+          <textarea
+            id="queryText"
+            rows="1"
+            class="flex-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-3 resize-none"
+            placeholder="Ask something about your documents..."
+          ></textarea>
+          <button
+            id="queryBtn"
+            type="submit"
+            class="px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed h-[46px]"
+          >
+            <span class="btn-text">Send</span>
+            <svg
+              class="spinner animate-spin -ml-1 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          </button>
+        </form>
+        <span id="queryStatus" class="text-sm mt-2 block h-5"></span>
+      </section>
+
+      <section id="embedPage" class="bg-white rounded-xl shadow-lg border p-6 hidden">
+        <h2 class="text-xl font-bold mb-4">Add New Info</h2>
+        <label for="docText" class="block text-sm font-medium mb-2">Document text</label>
+        <textarea
+          id="docText"
+          rows="8"
+          class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-3"
+          placeholder="Paste text to store..."
+        ></textarea>
+        <div class="mt-4 flex items-center gap-3">
+          <button
+            id="addBtn"
+            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span class="btn-text">Add</span>
+            <svg
+              class="spinner animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          </button>
+          <span id="addStatus" class="text-sm h-5"></span>
+        </div>
+        <div id="addResult" class="mt-4 hidden">
+          <div class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+            Document stored successfully.
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="text-center text-xs text-gray-500 py-6">RAG UI • Tailwind + Vanilla JS</footer>
+    
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -128,7 +128,7 @@ User Question: ${OurQuery.query}`;
       success: true,
       query: OurQuery.query,
       retrieved_data: queryResult.map(doc => doc.text), 
-      answer: finalAnswer, // The final RAG answer from Gemini
+      answer: finalAnswer, 
     });
 
   } catch (error) {
