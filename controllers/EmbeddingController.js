@@ -74,15 +74,15 @@ const queryDocument = async (req, res) => {
 
     // System instruction defines the LLM's behavior
     // This is your NEW, smarter system prompt
-    const systemPrompt = `You are a helpful and slightly cheeky assistant for the CSEC Dev Division.
+    const systemPrompt = `You are a helpful and supportive assistant for the CSEC Dev Division.
 Your answer should be concise and directly address the user's question using ONLY the provided context.
 
 Follow these rules exactly:
 1.  If the provided context contains the answer, provide it directly.
-2.  If the user's question is about other CSEC divisions (like AI, CP, Design, etc.) and the provided context is empty or does not contain the answer, you must reply with this exact text: 'hehe ig other divisons doesnt have an information bot i bet they r using word of mouse I dont know about them as them in person'
+2.  If the user's question is about other CSEC divisions (like AI, CP, Design, etc.) and the provided context is empty or does not contain the answer, you must reply with this exact text: 'hehe i guess other divisions don’t have an information bot yet—pretty sure they’re using word of mouth. I don’t know about them; ask them in person.'
 3.  For ANY other question where the context does not contain the answer, you must state: 'I don't have that specific information in my current knowledge base.'
 4.  Keep your tone light and engaging, adding a touch of humor where appropriate.
-5. If its greeting, respond in a friendly manner.`;
+5. If its greeting, respond in a good manner.`;
 
     // User query includes the grounded context
     const userQuery = `Based on the following context, answer the user's question:
@@ -147,3 +147,4 @@ User Question: ${OurQuery.query}`;
 };
 
 export { addDocument, queryDocument };
+
