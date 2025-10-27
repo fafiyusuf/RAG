@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const chatPage = $('chatPage');
   const embedPage = $('embedPage');
 
-  // Updated navigation styling
-  const activeClasses = ['border-indigo-500', 'text-indigo-700'];
-  const inactiveClasses = ['border-transparent', 'text-gray-700'];
+  // MODIFIED: Classes for dark theme nav
+  const activeClasses = ['border-indigo-400', 'text-indigo-400'];
+  const inactiveClasses = ['border-transparent', 'text-gray-400'];
 
   function showPage(page) {
     if (page === 'chat') {
@@ -37,11 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!el) return;
     el.textContent = text || '';
     if (type === 'error') {
-      el.classList.add('text-red-600');
+      el.classList.add('text-red-500'); // Made error a bit brighter
       el.classList.remove('text-gray-500');
     } else {
       el.classList.add('text-gray-500');
-      el.classList.remove('text-red-600');
+      el.classList.remove('text-red-500');
     }
   }
   function show(el) {
@@ -105,36 +105,43 @@ document.addEventListener('DOMContentLoaded', () => {
   const queryText = $('queryText');
   const queryBtn = $('queryBtn');
   const queryStatus = $('queryStatus');
-  let chatHistory = [];
+  const newChatBtn = $('newChatBtn'); 
+
+  let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
 
   if (!chatForm || !queryBtn || !queryText || !chatWindow) {
     console.error('Chat elements not found. Check IDs in HTML.');
     return;
   }
   
-  // Auto-resize textarea
   if (queryText) {
     queryText.addEventListener('input', () => {
-      queryText.style.height = 'auto'; // Reset height
-      queryText.style.height = `${queryText.scrollHeight}px`; // Set to scroll height
+      queryText.style.height = 'auto';
+      queryText.style.height = `${queryText.scrollHeight}px`;
     });
+  }
+
+  function saveChatHistory() {
+    localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
   }
 
   function renderChat() {
     chatWindow.innerHTML = '';
     for (const msg of chatHistory) {
       const div = document.createElement('div');
+      
+      // *** THIS IS THE ONLY FUNCTIONAL LINE THAT CHANGED ***
       div.className =
         msg.role === 'user'
-          ? 'self-end bg-indigo-100 text-indigo-900 rounded-lg px-4 py-2 max-w-xs ml-auto break-words'
-          : 'self-start bg-gray-100 text-gray-900 rounded-lg px-4 py-2 max-w-xs mr-auto break-words';
+          ? 'self-end bg-indigo-600 text-white rounded-lg px-4 py-2 max-w-xs ml-auto break-words' // User bubble
+          : 'self-start bg-gray-700 text-gray-100 rounded-lg px-4 py-2 max-w-xs mr-auto break-words'; // Bot bubble
+          
       div.textContent = msg.text;
       chatWindow.appendChild(div);
     }
     chatWindow.scrollTop = chatWindow.scrollHeight;
   }
 
-  // Handle form submission
   if (chatForm) {
     chatForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -147,10 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       setStatus(queryStatus, 'Thinking…', 'loading');
       queryBtn.disabled = true;
+
       chatHistory.push({ role: 'user', text: q });
+      saveChatHistory(); 
       renderChat();
       queryText.value = '';
-      queryText.style.height = 'auto'; // Reset textarea height
+      queryText.style.height = 'auto';
 
       try {
         const data = await postJSON('/api/embeddings/query', { query: q });
@@ -161,16 +170,27 @@ document.addEventListener('DOMContentLoaded', () => {
         chatHistory.push({ role: 'bot', text: `Error: ${err.message}` });
         setStatus(queryStatus, `Error: ${err.message}`, 'error');
       } finally {
-        // Clear loading status only if no error was set
+        saveChatHistory(); 
+        
         if (!queryStatus.textContent.startsWith('Error:')) {
           setStatus(queryStatus, '');
         }
         queryBtn.disabled = false;
-        renderChat(); // Render final bot message or error
+        renderChat(); 
       }
+    });
+  }
+
+  if (newChatBtn) {
+    newChatBtn.addEventListener('click', () => {
+      chatHistory = [];
+      saveChatHistory();
+      renderChat();
+      setStatus(queryStatus, '');
     });
   }
 
   // Start on chatbot page
   showPage('chat');
+  renderChat(); 
 });

@@ -3,75 +3,65 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>RAG UI</title>
+    <title>ASK-CSEC - DevBot</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-      /* Simple CSS for auto-growing textarea */
-      #queryText {
-        field-sizing: content;
-        min-height: 46px; /* Approx h of a 1-row textarea + padding */
-        max-height: 200px;
-      }
-      /* Hide spinner by default */
-      .spinner {
-        display: none;
-      }
-      /* Show spinner on disabled buttons */
-      button:disabled .spinner {
-        display: inline-block;
-      }
-      /* Hide text on disabled buttons */
-      button:disabled .btn-text {
-        display: none;
-      }
-    </style>
   </head>
-  <body class="bg-gray-50 text-gray-900">
-    <header class="bg-white border-b sticky top-0 z-10">
+  <body class="bg-gray-900 text-gray-200">
+    <header class="bg-gray-800 border-b border-gray-700 sticky top-0 z-10">
       <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-        <h1 class="text-xl font-semibold">RAG Playground</h1>
+        <h1 class="text-xl font-semibold text-white">ASK-CSEC</h1>
       </div>
     </header>
 
     <main class="max-w-3xl mx-auto px-4 py-8">
-      <nav class="flex justify-start items-center mb-8 border-b">
+      <nav class="flex justify-start items-center mb-8 border-b border-gray-700">
         <div class="flex gap-2">
           <button
             id="navChat"
-            class="px-4 py-3 -mb-px border-b-2 border-transparent font-semibold text-gray-700 hover:text-indigo-700 hover:border-indigo-500 focus:outline-none"
+            class="px-4 py-3 -mb-px border-b-2 border-transparent font-semibold text-gray-400 hover:text-indigo-400 hover:border-indigo-400 focus:outline-none"
           >
             Chatbot
           </button>
           <button
             id="navEmbed"
-            class="px-4 py-3 -mb-px border-b-2 border-transparent font-semibold text-gray-700 hover:text-indigo-700 hover:border-indigo-500 focus:outline-none"
+            class="px-4 py-3 -mb-px border-b-2 border-transparent font-semibold text-gray-400 hover:text-indigo-400 hover:border-indigo-400 focus:outline-none"
           >
             Add New Info
           </button>
         </div>
       </nav>
 
-      <section id="chatPage" class="bg-white rounded-xl shadow-lg border p-6 relative">
-        <h2 class="text-xl font-bold mb-4">Chatbot</h2>
+      <section id="chatPage" class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 relative">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold text-white">Chatbot</h2>
+          <button
+            id="newChatBtn"
+            class="px-3 py-1 bg-gray-700 text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 focus:ring-offset-gray-800"
+          >
+            New Chat
+          </button>
+        </div>
+
         <div
           id="chatWindow"
-          class="h-96 overflow-y-auto bg-gray-50 border rounded-lg p-4 mb-4 flex flex-col gap-3"
+          class="h-96 overflow-y-auto bg-gray-900 border border-gray-700 rounded-lg p-4 mb-4 flex flex-col gap-3"
         ></div>
         <form id="chatForm" class="flex gap-2 items-start">
           <textarea
             id="queryText"
             rows="1"
-            class="flex-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-3 resize-none"
+            class="flex-1 rounded-lg bg-gray-700 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 p-3 resize-none min-h-[46px] max-h-[200px]"
             placeholder="Ask something about your documents..."
           ></textarea>
           <button
             id="queryBtn"
             type="submit"
-            class="px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed h-[46px]"
+            class="px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed h-[46px]"
           >
-            <span class="btn-text">Send</span>
+            <span class="btn-text disabled:hidden">Send</span>
+            
             <svg
-              class="spinner animate-spin -ml-1 h-5 w-5 text-white"
+              class="spinner animate-spin -ml-1 h-5 w-5 text-white hidden disabled:inline-block"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -95,23 +85,24 @@
         <span id="queryStatus" class="text-sm mt-2 block h-5"></span>
       </section>
 
-      <section id="embedPage" class="bg-white rounded-xl shadow-lg border p-6 hidden">
-        <h2 class="text-xl font-bold mb-4">Add New Info</h2>
-        <label for="docText" class="block text-sm font-medium mb-2">Document text</label>
+      <section id="embedPage" class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 hidden">
+        <h2 class="text-xl font-bold text-white mb-4">Add New Info</h2>
+        <label for="docText" class="block text-sm font-medium text-gray-300 mb-2">Document text</label>
         <textarea
           id="docText"
           rows="8"
-          class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-3"
+          class="w-full rounded-lg bg-gray-700 border-gray-600 text-gray-100 placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 p-3"
           placeholder="Paste text to store..."
         ></textarea>
         <div class="mt-4 flex items-center gap-3">
           <button
             id="addBtn"
-            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span class="btn-text">Add</span>
+            <span class="btn-text disabled:hidden">Add</span>
+
             <svg
-              class="spinner animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+              class="spinner animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden disabled:inline-block"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -134,14 +125,14 @@
           <span id="addStatus" class="text-sm h-5"></span>
         </div>
         <div id="addResult" class="mt-4 hidden">
-          <div class="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+          <div class="text-sm text-green-300 bg-green-900 border border-green-700 rounded-lg p-3">
             Document stored successfully.
           </div>
         </div>
       </section>
     </main>
 
-    <footer class="text-center text-xs text-gray-500 py-6">RAG UI • Tailwind + Vanilla JS</footer>
+    <footer class="text-center text-xs text-gray-400 py-6"> Built by Fetiya • Siham • Tsion </footer>
     
     <script src="/app.js"></script>
   </body>
