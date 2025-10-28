@@ -1,7 +1,5 @@
 import pkg from "voyageai";
-import { CacheModel, DataModel } from "../models/dataModel.js";
-import { chunkText } from "../utils/chunkText.js";
-
+import DataModel from "../models/dataModel.js";
 // Removed: import OpenAI from "openai";
 // Note: We use the global 'fetch' API available in Node.js environments
 
@@ -14,73 +12,28 @@ const voyageClient = new VoyageAIClient({
 
 // The addDocument function remains unchanged
 const addDocument = async (req, res) => {
-  if (!req.body || !req.body.text) {
+  if (!req.body) {
     return res.status(400).json({
       success: false,
       message: 'Bad Request: "text" field is required',
     });
   }
-
-  const { text } = req.body;
-  console.log("Received text:", text);
+  const data = req.body;
+  console.log("Received text:", data);
 
   try {
-    // 1️⃣ Chunk the text
-    const chunks = chunkText(text);
-
-     // 2️⃣ Normalize chunks to strings (chunkText might return objects)
-    const normalizedChunks = (Array.isArray(chunks) ? chunks : [chunks])
-      .map((chunk, i) => {
-        // string already
-        if (typeof chunk === "string") return chunk.trim();
-
-        // Buffer / Uint8Array -> decode to UTF-8 string
-        if (typeof Buffer !== "undefined" && (Buffer.isBuffer(chunk) || chunk instanceof Uint8Array)) {
-          try {
-            const str = Buffer.from(chunk).toString("utf8").trim();
-            return str.length ? str : null;
-          } catch (e) {
-            console.warn(`Failed to decode binary chunk at index ${i}:`, e);
-            return null;
-          }
-        }
-
-        // object with common text fields
-        if (chunk && typeof chunk === "object") {
-          if (typeof chunk.text === "string") return chunk.text.trim();
-          if (typeof chunk.content === "string") return chunk.content.trim();
-        }
-
-        console.warn(`Dropping non-string chunk at index ${i}:`, chunk);
-        return null;
-      })
-      .filter((c) => c && c.length > 0);
-
-    if (normalizedChunks.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No valid text chunks were produced from the input.",
-      });
-    }
-
-    // 3️⃣ Embed all chunks in one request
     const embeddedFormat = await voyageClient.embed({
       model: "voyage-3-large",
-      input: normalizedChunks,
+      input: data.text,
     });
-
-    const embeddings = embeddedFormat.data.map((item, idx) => ({
-      text: normalizedChunks[idx],
-      embedding: item.embedding,
-    }));
-
-    // 4️⃣ Save all chunks to DB
-    await DataModel.insertMany(embeddings);
-
+    await DataModel.create({
+      text: data.text,
+      embedding: embeddedFormat.data[0].embedding,
+    });
     return res.status(200).json({
       success: true,
-      message: "Text chunked and embedded successfully",
-      chunks: embeddings.length,
+      data: embeddedFormat,
+      text: embeddedFormat.data[0].embedding,
     });
   } catch (error) {
     console.error("Error embedding text:", error);
@@ -97,53 +50,68 @@ const queryDocument = async (req, res) => {
   console.log("Received query:", OurQuery);
 
   try {
-    // 0️⃣ Check cache first
-    const cachedAnswer = await CacheModel.findOne({ query: OurQuery.query });
-    if (cachedAnswer) {
-      console.log("Cache hit ✅");
-      return res.status(200).json({
-        success: true,
-        query: OurQuery.query,
-        retrieved_data: [],
-        answer: cachedAnswer.answer,
-        cached: true,
-      });
-    }
-
-    // 1️⃣ Embed the query (correct model name)
+    // 1. EMBED THE QUERY (VoyageAI)
     const embeddedQuestionFormat = await voyageClient.embed({
       model: "voyage-3-large",
       input: OurQuery.query,
     });
+    const queryVector = embeddedQuestionFormat.data[0].embedding;
 
-    // 2️⃣ Retrieve documents
+    // 2. RETRIEVE DOCUMENTS (MongoDB Hybrid Search - Vector + Keyword)
     const queryResult = await DataModel.aggregate([
       {
-        $vectorSearch: {
-          index: "vector_indexx",
-          path: "embedding",
-          queryVector: embeddedQuestionFormat.data[0].embedding,
-          numCandidates: 100,
-          limit: 3,
+        $search: {
+          index: "hybrid_search_index", // Your new hybrid index
+          compound: {
+            should: [
+              {
+                // Keyword search clause
+                text: {
+                  query: OurQuery.query,
+                  path: "text",
+                  score: { boost: { value: 1.5 } }, // Boost keyword matches
+                },
+              },
+              {
+                // Vector search clause
+                knnBeta: {
+                  vector: queryVector,
+                  path: "embedding",
+                  k: 50, // Number of nearest neighbors to consider
+                },
+              },
+            ],
+          },
+        },
+      },
+      {
+        $limit: 3, // Return top 3 results
+      },
+      {
+        $project: {
+          text: 1,
+          score: { $meta: "searchScore" }, // Include relevance score
+          _id: 0,
         },
       },
     ]);
 
-    // 3️⃣ Construct context
+    // 3. CONSTRUCT THE CONTEXT AND PROMPT (RAG Core Logic)
     const context = queryResult.map((doc) => doc.text).join("\n---\n");
 
-    // 4️⃣ Prepare prompt
-   const systemPrompt = `You are the CSEC Dev Division information bot.
-Follow these rules in order:
-1) If the user asks who/what you are, your name, or what you do, reply exactly:
-"I'm the CSEC Dev Division information bot. I answer questions about the CSEC Dev Division—sessions, events, resources, and internal info."
-2) If the provided context contains the answer, provide it directly and concisely.
-3) If the user's question is about other CSEC divisions (AI, CP, Design, etc.) and the context is empty or irrelevant, reply exactly:
-"hehe i guess other divisions don’t have an information bot yet—pretty sure they’re using word of mouth. I don’t know about them; ask them in person."
-4) For any other question where the context lacks the answer, reply:
-"I don't have that specific information in my current knowledge base."
-5) If it's a greeting, respond briefly and warmly.`;
+   
+    const systemPrompt = `You are a helpful and slightly cheeky assistant for the CSEC Dev Division.
+Your answer should be concise and directly address the user's question using ONLY the provided context.
 
+Follow these rules exactly:
+1.  If the provided context contains the answer, provide it directly.
+2.  If the user's question is about other CSEC divisions (like DataScience, CPD, cyber, etc.) and the provided context is empty or does not contain the answer, you must reply with this exact text: 'hehe ig other divisons doesnt have an information bot i bet they r using word of mouse I dont know about them as them in person'
+3.  For ANY other question where the context does not contain the answer, you must state: 'I don't have that specific information in my current knowledge base.'
+4.  Keep your tone light and engaging, adding a touch of humor where appropriate.
+5. If its greeting, respond in a friendly manner.
+`;
+
+ 
     const userQuery = `Based on the following context, answer the user's question:
 
 Context:
@@ -151,14 +119,16 @@ ${context}
 
 User Question: ${OurQuery.query}`;
 
-    // 5️⃣ Call Gemini
+   
     const geminiApiKey = process.env.GEMINI_API_KEY || "";
+    // Note: We use the preview model for grounding capabilities.
     const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
 
     const payload = {
-      contents: [{ role: "user", parts: [{ text: userQuery }] }],
-      // In the REST API, the field is system_instruction (underscore). Keeping both for safety:
-      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ parts: [{ text: userQuery }] }],
+      systemInstruction: {
+        parts: [{ text: systemPrompt }],
+      },
     };
 
     const response = await fetch(geminiApiUrl, {
@@ -168,37 +138,39 @@ User Question: ${OurQuery.query}`;
     });
 
     if (!response.ok) {
+      // Log the error response body if possible
       const errorBody = await response.text();
-      console.error(`Gemini API request failed: ${response.status} - ${errorBody}`);
-      throw new Error(`Gemini API request failed with status ${response.status}`);
+      console.error(
+        `Gemini API request failed: ${response.status} - ${errorBody}`
+      );
+      throw new Error(
+        `Gemini API request failed with status ${response.status}`
+      );
     }
 
     const result = await response.json();
-    let finalAnswer =
-      result.candidates?.[0]?.content?.parts?.[0]?.text || "Could not generate an answer.";
+    let finalAnswer = "Could not generate an answer from the Gemini model.";
 
-    // 6️⃣ Save to cache
-    try {
-      await CacheModel.create({ query: OurQuery.query, answer: finalAnswer });
-    } catch (e) {
-      console.error("Cache save failed:", e);
+    // Safely extract the generated text
+    const candidate = result.candidates?.[0];
+    if (candidate && candidate.content?.parts?.[0]?.text) {
+      finalAnswer = candidate.content.parts[0].text;
     }
 
     console.log("Query Result:", queryResult);
     console.log("Final Answer:", finalAnswer);
 
-    // 7️⃣ Send response
+    // 5. SEND THE FINAL RESPONSE
     return res.status(200).json({
       success: true,
       query: OurQuery.query,
       retrieved_data: queryResult.map((doc) => doc.text),
       answer: finalAnswer,
-      cached: false,
     });
   } catch (error) {
     console.error("Error querying document or generating answer:", error);
     res.status(500).send("Internal Server Error");
   }
 };
-export { addDocument, queryDocument };
 
+export { addDocument, queryDocument };
