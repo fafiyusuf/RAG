@@ -1,5 +1,5 @@
 import pkg from "voyageai";
-import DataModel from "../models/dataModel.js";
+import { DataModel } from "../models/dataModel.js";
 // Removed: import OpenAI from "openai";
 // Note: We use the global 'fetch' API available in Node.js environments
 
@@ -57,44 +57,91 @@ const queryDocument = async (req, res) => {
     });
     const queryVector = embeddedQuestionFormat.data[0].embedding;
 
-    // 2. RETRIEVE DOCUMENTS (MongoDB Hybrid Search - Vector + Keyword)
-    const queryResult = await DataModel.aggregate([
+    // 2. RETRIEVE DOCUMENTS (Hybrid search implemented by merging vector + keyword results)
+    // knnBeta is not allowed to be nested inside compound (Atlas restriction).
+    // We'll run two $search pipelines (one vector, one keyword), merge results in JS,
+    // and produce a combined ranking.
+
+    // a) Vector search (knnBeta) to get nearest neighbors
+    const vectorCandidates = await DataModel.aggregate([
       {
         $search: {
-          index: "hybrid_search_index", // Your new hybrid index
-          compound: {
-            should: [
-              {
-                // Keyword search clause
-                text: {
-                  query: OurQuery.query,
-                  path: "text",
-                  score: { boost: { value: 1.5 } }, // Boost keyword matches
-                },
-              },
-              {
-                // Vector search clause
-                knnBeta: {
-                  vector: queryVector,
-                  path: "embedding",
-                  k: 50, // Number of nearest neighbors to consider
-                },
-              },
-            ],
+          index: "hybrid_search_index",
+          knnBeta: {
+            vector: queryVector,
+            path: "embedding",
+            k: 50,
           },
         },
       },
       {
-        $limit: 3, // Return top 3 results
-      },
-      {
         $project: {
+          _id: 1,
           text: 1,
-          score: { $meta: "searchScore" }, // Include relevance score
-          _id: 0,
+          vScore: { $meta: "searchScore" },
         },
       },
     ]);
+
+    // b) Keyword/text search to get keyword matches
+    const textCandidates = await DataModel.aggregate([
+      {
+        $search: {
+          index: "hybrid_search_index",
+          text: {
+            query: OurQuery.query,
+            path: "text",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          text: 1,
+          tScore: { $meta: "searchScore" },
+        },
+      },
+      { $limit: 50 },
+    ]);
+
+    // Merge candidates by _id
+    const map = new Map();
+
+    for (const doc of vectorCandidates) {
+      const id = String(doc._id);
+      map.set(id, {
+        id,
+        text: doc.text,
+        vScore: doc.vScore || 0,
+        tScore: 0,
+      });
+    }
+
+    for (const doc of textCandidates) {
+      const id = String(doc._id);
+      if (map.has(id)) {
+        map.get(id).tScore = doc.tScore || 0;
+      } else {
+        map.set(id, {
+          id,
+          text: doc.text,
+          vScore: 0,
+          tScore: doc.tScore || 0,
+        });
+      }
+    }
+
+    // Compute combined score and sort
+    const keywordBoost = 2.0; // tune this to prefer keyword matches
+    const combined = Array.from(map.values()).map((d) => ({
+      text: d.text,
+      score: (d.vScore || 0) + (d.tScore || 0) * keywordBoost,
+    }));
+
+    combined.sort((a, b) => b.score - a.score);
+
+    // Keep top 3 as the final retrieved context
+    const queryResult = combined.slice(0, 3);
 
     // 3. CONSTRUCT THE CONTEXT AND PROMPT (RAG Core Logic)
     const context = queryResult.map((doc) => doc.text).join("\n---\n");
