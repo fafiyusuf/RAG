@@ -1,13 +1,19 @@
 import mongoose from "mongoose";
 
 // Data model
-const dataSchema = new mongoose.Schema(
-  {
-    text: { type: String, required: true },
-    embedding: { type: [Number], required: true },
+const dataSchema = new mongoose.Schema({
+  text: String,
+  embedding: Array,
+  metadata: Object,
+  createdAt: {
+    type: Date,
+    default: Date.now,
   },
-  { timestamps: true }
-);
+  // --- New fields for versioning/deduplication ---
+  is_superseded: { type: Boolean, default: false, index: true }, // Mark as superseded, default to false
+  new_version_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Data', default: null }, // Link to the document that superseded this one
+  // ---------------------------------------------
+});
 export const DataModel = mongoose.model("Data", dataSchema);
 
 // Cache model
