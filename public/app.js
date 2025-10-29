@@ -173,18 +173,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const copyBtn = document.createElement("button");
 
       // Styling for the copy button, positioned absolutely at the bottom right
-      let copyBtnClasses =
-        "absolute -bottom-6 text-xs right-0 p-1 rounded-md text-gray-400 hover:bg-gray-600 flex items-center space-x-1";
-
-      if (isUser) {
-        // USER message: hover-only visibility
-        copyBtnClasses += ` opacity-0 transition-opacity duration-200 group-hover:opacity-100`;
-      } else {
-        // BOT message: always visible
-        copyBtnClasses += ` opacity-100`;
-      }
-
-      copyBtn.className = copyBtnClasses;
+      // Both user and bot messages: hover-only visibility
+      copyBtn.className = "absolute -bottom-6 text-xs right-0 p-1 rounded-md text-gray-400 hover:bg-gray-600 flex items-center space-x-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100";
 
       // Updated Icon to Document Duplicate (more visible) and added 'Copy' text
       copyBtn.innerHTML = `

@@ -1,0 +1,1 @@
+const { VoyageAIClient } = require('voyageai'); const client = new VoyageAIClient({ apiKey: process.env.VOYAGE_API_KEY }); client.embed({ model: 'voyage-3-large', input: 'test' }).then(r => console.log('Dimensions:', r.data[0].embedding.length)); 

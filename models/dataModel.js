@@ -16,12 +16,16 @@ const dataSchema = new mongoose.Schema({
 });
 export const DataModel = mongoose.model("Data", dataSchema);
 
-// Cache model
+// Cache model with TTL (24 hours)
 const cacheSchema = new mongoose.Schema(
   {
-    query: { type: String, required: true, unique: true, index: true },
+    query: { type: String, required: true },
+    embedding: { type: [Number], required: true },
     answer: { type: String, required: true },
+    lastAccessed: { type: Date, default: Date.now },
+    createdAt: { type: Date, default: Date.now, expires: 86400 }, // TTL: 24 hours (86400 seconds)
   },
   { timestamps: true }
 );
+
 export const CacheModel = mongoose.model("Cache", cacheSchema);

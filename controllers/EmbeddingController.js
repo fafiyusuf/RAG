@@ -1,6 +1,8 @@
 import pkg from "voyageai";
 import { CacheModel, DataModel } from "../models/dataModel.js";
 import { chunkText } from "../utils/chunkText.js";
+import { rateLimitDelay } from "../utils/rateLimiter.js";
+import { checkSemanticCache, saveToSemanticCache } from "../utils/semanticCache.js";
 
 function cosineSimilarity(vecA, vecB) {
   if (!vecA || !vecB || vecA.length !== vecB.length) {
@@ -20,6 +22,30 @@ const { VoyageAIClient } = pkg;
 const voyageClient = new VoyageAIClient({
   apiKey: process.env.VOYAGE_API_KEY,
 });
+
+// --- Helper: Embed with retry logic for rate limiting ---
+async function embedWithRetry(input, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      // Add rate limiting delay before making request
+      await rateLimitDelay();
+      
+      return await voyageClient.embed({
+        model: "voyage-3-large",
+        input: input,
+      });
+    } catch (error) {
+      if (error.statusCode === 429 && attempt < retries) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 10000); // Exponential backoff, max 10s
+        console.log(`⚠️ Rate limit hit (attempt ${attempt}/${retries}), retrying after ${delay}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      } else {
+        throw error; // Re-throw if not rate limit or final attempt
+      }
+    }
+  }
+}
+// -------------------------------------------------------
 
 // --- Helper function for finding existing similar documents in the DB ---
 // NOTE: This is only used for deduplication logic in addDocument.
@@ -88,11 +114,8 @@ const addDocument = async (req, res) => {
       });
     }
 
-    // 3️⃣ Embed all chunks in one request
-    const embeddedFormat = await voyageClient.embed({
-      model: "voyage-3-large",
-      input: normalizedChunks,
-    });
+    // 3️⃣ Embed all chunks in one request (with retry logic)
+    const embeddedFormat = await embedWithRetry(normalizedChunks);
 
     const newDocuments = embeddedFormat.data.map((item, idx) => ({
       text: normalizedChunks[idx],
@@ -173,26 +196,28 @@ const queryDocument = async (req, res) => {
   console.log("Received query:", OurQuery);
 
   try {
-    // 0️⃣ Check cache first
-    const cachedAnswer = await CacheModel.findOne({ query: OurQuery.query });
-    if (cachedAnswer) {
-      console.log("Cache hit ✅");
+    // 0️⃣ Check semantic cache first (with cosine similarity ≥ 0.93)
+    const cacheResult = await checkSemanticCache(OurQuery.query, 0.93);
+    
+    if (cacheResult.hit) {
+      console.log("🎯 Semantic cache hit - skipping Voyage & Gemini API calls");
       return res.status(200).json({
         success: true,
         query: OurQuery.query,
         retrieved_data: [],
-        answer: cachedAnswer.answer,
+        answer: cacheResult.answer,
         cached: true,
+        semantic_cache: true,
       });
     }
 
-    // 1️⃣ Embed the query
-    const embeddedQuestionFormat = await voyageClient.embed({
-      model: "voyage-3-large",
-      input: OurQuery.query,
-    });
-
-    const queryVector = embeddedQuestionFormat.data?.[0]?.embedding;
+    // 1️⃣ Embed the query (reuse embedding from cache check if available)
+    let queryVector = cacheResult.queryEmbedding;
+    
+    if (!queryVector) {
+      const embeddedQuestionFormat = await embedWithRetry(OurQuery.query);
+      queryVector = embeddedQuestionFormat.data?.[0]?.embedding;
+    }
 
     // 2️⃣ Hybrid retrieval: knnBeta (vector) + keyword (text)
     
@@ -348,7 +373,7 @@ User Question: ${OurQuery.query}`;
       finalAnswer = candidate.content.parts[0].text;
     }
 
-    // 6️⃣ Selective caching with standard answer exception
+    // 6️⃣ Save to semantic cache with embedding and TTL (24 hours)
     try {
       // Compute retrieval confidence using cosine similarity to the top match
       let retrievalScore = null;
@@ -358,12 +383,15 @@ User Question: ${OurQuery.query}`;
       }
 
       const lower = String(finalAnswer).toLowerCase();
+      
+      // Check if the answer is ambiguous/uncertain
       const isAmbiguous =
         lower.includes("i don't have that specific information in my current knowledge base") ||
         lower.includes("could not generate an answer") ||
         lower.includes("i don't know") ||
         lower.includes("unsure");
 
+      // Check if it's a standard greeting/info response
       const simpleResponses = [
         "hello! how can i help you today?",
         "hello! how may i help you today?",
@@ -372,21 +400,22 @@ User Question: ${OurQuery.query}`;
       ];
       const isSimpleStandardAnswer = simpleResponses.some((r) => lower.includes(r));
 
-      const CACHE_THRESHOLD = 0.85;
-      const shouldCache =
-        !isAmbiguous &&
-        ((retrievalScore !== null && retrievalScore >= CACHE_THRESHOLD) || isSimpleStandardAnswer);
+      // More lenient caching strategy for semantic cache:
+      // Cache if answer is NOT ambiguous (semantic matching will handle similar queries)
+      const shouldCache = !isAmbiguous;
 
       if (shouldCache) {
-        await CacheModel.create({ query: OurQuery.query, answer: finalAnswer });
-        console.log(
-          `Cached (Reason: ${isSimpleStandardAnswer ? 'Standard Answer' : 'High Retrieval Score: ' + (retrievalScore ?? 'n/a')})`
-        );
+        // Save with semantic cache (includes embedding and TTL)
+        await saveToSemanticCache(OurQuery.query, queryVector, finalAnswer);
+        const reason = isSimpleStandardAnswer 
+          ? 'Standard Answer' 
+          : `Retrieval Score: ${retrievalScore?.toFixed(3) ?? 'n/a'}`;
+        console.log(`💾 Saved to semantic cache (${reason})`);
       } else {
-        console.log(`Skip cache. ambiguous=${isAmbiguous}, retrievalScore=${retrievalScore ?? 'n/a'}`);
+        console.log(`⏭️ Skip cache - answer is ambiguous/uncertain`);
       }
     } catch (e) {
-      console.error("Selective cache step failed:", e);
+      console.error("Semantic cache save failed:", e);
     }
 
     console.log("Query Result:", queryResult);
