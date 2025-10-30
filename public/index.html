@@ -125,10 +125,26 @@
             </button>
           </form>
           <p id="queryStatus" class="text-xs text-gray-400 mt-2 h-4"></p>
+          <div class="mt-2 flex flex-col items-center gap-1">
+            <div class="text-[11px] sm:text-xs text-gray-500 flex items-center gap-1 select-none">
+              <span>Built with</span>
+              <span class="text-red-400 animate-pulse" aria-hidden="true">❤</span>
+              <span class="sr-only">love</span>
+              <span>by</span>
+              <span class="text-gray-300 font-medium tracking-wide">Siham</span>
+              <span class="text-gray-600">•</span>
+              <span class="text-gray-300 font-medium tracking-wide">Fetiya</span>
+              <span class="text-gray-600">•</span>
+              <span class="text-gray-300 font-medium tracking-wide">Tsion</span>
+            </div>
+          </div>
         </footer>
       </div>
     </div>
 
+    <!-- Markdown renderer and sanitizer -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.7/dist/purify.min.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

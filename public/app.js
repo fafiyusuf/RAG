@@ -182,7 +182,17 @@ document.addEventListener("DOMContentLoaded", () => {
     </span>
   `;
       } else {
-        bubble.textContent = msg.text;
+        // Render Markdown for bot messages; keep user messages as plain text
+        if (!isUser && window.marked && window.DOMPurify) {
+          try {
+            const html = window.DOMPurify.sanitize(window.marked.parse(msg.text || ""));
+            bubble.innerHTML = html;
+          } catch (_) {
+            bubble.textContent = msg.text;
+          }
+        } else {
+          bubble.textContent = msg.text;
+        }
       }
 
       // Copy Button (don't show for thinking messages)
