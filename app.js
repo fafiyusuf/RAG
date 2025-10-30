@@ -25,8 +25,6 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-
-
 // Root serves the UI
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
