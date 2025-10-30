@@ -175,15 +175,12 @@ document.addEventListener("DOMContentLoaded", () => {
       // Add typing indicator dots for thinking messages
       if (msg.isThinking) {
         bubble.innerHTML = `
-          <span class="flex items-center gap-1">
-            <span>Thinking</span>
-            <span class="flex gap-1">
-              <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-              <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-              <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-            </span>
-          </span>
-        `;
+    <span class="flex gap-1 items-center">
+      <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+      <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+      <span class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+    </span>
+  `;
       } else {
         bubble.textContent = msg.text;
       }
