@@ -335,15 +335,19 @@ Here’s how you should respond:
 4. **No Info Available** — If the context doesn’t have the answer, say exactly:
    "I don’t have that specific information in my current knowledge base."
 
-5. **Greetings & Small Talk** — If it’s just a greeting or a casual chat, reply warmly and keep it light — for example:
+5. **Unrelated Questions** — If the user asks about something completely unrelated to CSEC ASTU or its community, say exactly:
+   "I’m only here to provide information about the CSEC ASTU community — including its divisions, events, and updates."
+
+6. **Greetings & Small Talk** — If it’s just a greeting or a casual chat, reply warmly and keep it light — for example:
    "Hey! Nice to see you 👋 How can I help today?" or "Hi there! Hope you’re doing great — what would you like to know about CSEC ASTU?"`;
 
-    const userQuery = `Based on the following context, answer the user's question:
+const userQuery = `Based on the following context, answer the user's question:
 
 Context:
 ${context}
 
 User Question: ${OurQuery.query}`;
+
 
     // 5️⃣ Call Gemini (Generative Language API)
     const geminiApiKey = process.env.GEMINI_API_KEY || "";

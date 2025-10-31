@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const historyList = document.getElementById("historyList");
   const sidebar = document.getElementById("sidebar");
   const toggleSidebar = document.getElementById("toggleSidebar");
+  const toggleSidebarBtn = document.getElementById("toggleSidebarBtn");
   const showSidebar = document.getElementById("showSidebar");
   const showSidebarDesktop = document.getElementById("showSidebarDesktop");
   const closeSidebar = document.getElementById("closeSidebar");
@@ -15,6 +16,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const infoBtn = document.getElementById("infoBtn");
   const infoModal = document.getElementById("infoModal");
   const closeInfoModal = document.getElementById("closeInfoModal");
+
+  // Sidebar state
+  let isSidebarOpen = window.innerWidth >= 1024; // Open by default on desktop
 
   // Info modal handlers
   if (infoBtn && infoModal && closeInfoModal) {
@@ -409,42 +413,65 @@ document.addEventListener("DOMContentLoaded", () => {
     queryText.focus();
   });
 
+  // Toggle sidebar function
+  function toggleSidebarState() {
+    // Only allow toggle on mobile
+    if (window.innerWidth < 1024) {
+      isSidebarOpen = !isSidebarOpen;
+      
+      if (isSidebarOpen) {
+        sidebar.classList.remove("-translate-x-full");
+        overlay.classList.remove("hidden");
+      } else {
+        sidebar.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+      }
+    }
+  }
+
+  // Sidebar toggle button inside sidebar (mobile only)
+  if (toggleSidebarBtn) {
+    toggleSidebarBtn.addEventListener("click", () => {
+      if (window.innerWidth < 1024) {
+        isSidebarOpen = false;
+        sidebar.classList.add("-translate-x-full");
+        overlay.classList.add("hidden");
+      }
+    });
+  }
+
   // Sidebar toggle for mobile (hamburger menu)
   showSidebar.addEventListener("click", () => {
+    isSidebarOpen = true;
     sidebar.classList.remove("-translate-x-full");
     overlay.classList.remove("hidden");
   });
 
   closeSidebar.addEventListener("click", () => {
+    isSidebarOpen = false;
     sidebar.classList.add("-translate-x-full");
     overlay.classList.add("hidden");
   });
 
   overlay.addEventListener("click", () => {
+    isSidebarOpen = false;
     sidebar.classList.add("-translate-x-full");
     overlay.classList.add("hidden");
   });
 
-  // Sidebar toggle for desktop (collapse/expand)
-  if (toggleSidebar) {
-    toggleSidebar.addEventListener("click", () => {
-      sidebar.classList.add("-translate-x-full");
-      sidebar.classList.add("lg:-translate-x-full");
-      showSidebarDesktop.classList.remove("hidden");
-    });
-  }
-
+  // Show sidebar button (desktop, when collapsed) - removed for desktop
   showSidebarDesktop.addEventListener("click", () => {
-    sidebar.classList.remove("-translate-x-full");
-    sidebar.classList.remove("lg:-translate-x-full");
-    showSidebarDesktop.classList.add("hidden");
+    // Not needed for desktop anymore
   });
 
-  // Keep sidebar visible by default on desktop
+  // Keep sidebar visible by default on desktop, hidden on mobile
   if (window.innerWidth >= 1024) {
-    sidebar.classList.remove("-translate-x-full");
-    sidebar.classList.remove("lg:-translate-x-full");
+    isSidebarOpen = true;
+    sidebar.classList.remove("-translate-x-full", "lg:-translate-x-full");
     showSidebarDesktop.classList.add("hidden");
+  } else {
+    isSidebarOpen = false;
+    sidebar.classList.add("-translate-x-full");
   }
 
   // Close mobile sidebar when selecting a chat

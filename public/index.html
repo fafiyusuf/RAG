@@ -17,18 +17,14 @@
       <!-- Sidebar -->
       <aside
         id="sidebar"
-        class="fixed lg:relative lg:translate-x-0 -translate-x-full w-64 h-full bg-[#171717] flex flex-col transition-transform duration-300 z-40">
+        class="fixed lg:relative lg:translate-x-0 -translate-x-full w-64 h-full bg-[#171717] flex flex-col transition-all duration-300 ease-in-out z-40 border-r border-[#2f2f2f]">
         <!-- Sidebar Header with Logo -->
-        <div class="p-3 flex items-center gap-2">
-          <button class="p-2 hover:bg-[#2f2f2f] rounded-lg">
-            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-            </svg>
-          </button>
-          <button
-            id="closeSidebar"
-            class="ml-auto p-2 hover:bg-[#2f2f2f] rounded-lg lg:hidden">
-            <svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="p-3 flex items-center gap-2 border-b border-[#2f2f2f]">
+          <button 
+            id="toggleSidebarBtn"
+            class="ml-auto p-2 hover:bg-[#2f2f2f] rounded-lg transition-colors group lg:hidden"
+            title="Close sidebar">
+            <svg class="w-5 h-5 text-gray-300 group-hover:text-gray-100 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
           </button>
@@ -63,7 +59,8 @@
             <!-- Hamburger menu (mobile) -->
             <button
               id="showSidebar"
-              class="p-2 text-gray-400 hover:bg-[#2f2f2f] rounded-lg lg:hidden">
+              class="p-2 text-gray-400 hover:bg-[#2f2f2f] hover:text-gray-200 rounded-lg transition-colors lg:hidden"
+              title="Open sidebar">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
               </svg>
@@ -72,17 +69,16 @@
             <!-- Show Sidebar Button (Desktop, when collapsed) -->
             <button
               id="showSidebarDesktop"
-              class="p-2 text-gray-400 hover:bg-[#2f2f2f] rounded-lg hidden">
+              class="p-2 text-gray-400 hover:bg-[#2f2f2f] hover:text-gray-200 rounded-lg transition-colors hidden"
+              title="Open sidebar">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
               </svg>
             </button>
 
-            <button class="flex items-center gap-1 px-2 py-1 hover:bg-[#2f2f2f] rounded-lg">
+            <button class="flex items-center gap-1 px-2 py-1 hover:bg-[#2f2f2f] rounded-lg transition-colors">
               <span class="text-base font-medium text-gray-200">ASK-CSEC</span>
-              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+           
             </button>
           </div>
 
