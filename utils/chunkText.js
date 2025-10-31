@@ -12,7 +12,6 @@ export const chunkText = (text, chunkSize = 200, overlap = 100) => {
     const chunkText = tokenizer.decode(chunkTokens);
     chunks.push(chunkText);
   }
-
   tokenizer.free();
   return chunks;
 };
