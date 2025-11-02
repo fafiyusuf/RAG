@@ -1,0 +1,8 @@
+# robots.txt for ASK-CSEC
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://ask-csec.com/sitemap.xml

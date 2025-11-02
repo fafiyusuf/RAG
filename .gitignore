@@ -1,3 +1,42 @@
+# Environment
 .env
-/node_modules/
-/admin
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor settings
+.vscode/
+
+# Build/coverage artifacts
+dist/
+coverage/
+
+# Temporary or local-only assets
+public/favicon (2)/
+
+# Admin UI (keep out of git if not needed in repo)
+admin/
+
+# Project documentation and helper files (local only)
+CHECKLIST.md
+FAVICON_CREATION_STEPS.md
+GOOGLE_SEARCH_CONSOLE_GUIDE.md
+IMPLEMENTATION_SUMMARY.md
+QUICK_START.txt
+READY_TO_DEPLOY.md
+SEO_SETUP_GUIDE.md
+FAVICON_GUIDE.md
