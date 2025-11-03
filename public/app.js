@@ -41,7 +41,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   } else {
-    console.error("Info modal elements not found:", { infoBtn, infoModal, closeInfoModal });
+    console.error("Info modal elements not found:", {
+      infoBtn,
+      infoModal,
+      closeInfoModal,
+    });
   }
 
   // Manage multiple chat sessions
@@ -114,9 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     sessions.forEach((session) => {
       const item = document.createElement("div");
       item.className = `group flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${
-        session.id === currentSessionId
-          ? "bg-[#2f2f2f]"
-          : "hover:bg-[#2f2f2f]"
+        session.id === currentSessionId ? "bg-[#2f2f2f]" : "hover:bg-[#2f2f2f]"
       }`;
 
       const titleSpan = document.createElement("span");
@@ -170,17 +172,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!session || session.messages.length === 0) {
       // Random welcome messages
       const welcomeMessages = [
-      
         "Ask me anything about CSEC!",
         "What do you know about CSEC?",
         "Curious about CSEC-ASTU?",
         "Let's talk about CSEC!",
         "What would you like to know about CSEC?",
         "Ready to explore CSEC together?",
-        "Ask me about the Computer Science and Engineering Club!"
+        "Ask me about the Computer Science and Engineering Club!",
       ];
-      const randomMessage = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
-      
+      const randomMessage =
+        welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+
       const welcomeDiv = document.createElement("div");
       welcomeDiv.className = "flex flex-col items-center justify-center h-full";
       welcomeDiv.innerHTML = `
@@ -196,24 +198,31 @@ document.addEventListener("DOMContentLoaded", () => {
       const isUser = msg.role === "user";
 
       // Container for the message
+
       const messageWrapper = document.createElement("div");
-      messageWrapper.className = "w-full bg-[#212121] py-8 border-b border-[#2f2f2f]";
+      messageWrapper.className = "w-full bg-[#212121] py-8";
 
       const messageContainer = document.createElement("div");
       messageContainer.className = "max-w-3xl mx-auto px-4 group relative";
 
       const messageContent = document.createElement("div");
       // User messages on right, bot messages on left
-      messageContent.className = isUser ? "flex justify-end" : "flex justify-start";
+      messageContent.className = isUser
+        ? "flex justify-end"
+        : "flex justify-start";
 
       // Message text container
       const textContainer = document.createElement("div");
-      textContainer.className = isUser ? "space-y-2 overflow-hidden max-w-2xl" : "space-y-2 overflow-hidden max-w-2xl";
+      textContainer.className = isUser
+        ? "space-y-2 overflow-hidden max-w-2xl"
+        : "space-y-2 overflow-hidden max-w-2xl";
 
       const bubble = document.createElement("div");
-      bubble.className = `text-gray-100 leading-relaxed ${msg.isThinking ? "animate-pulse" : ""}`;
+      bubble.className = `text-gray-100 leading-relaxed ${
+        msg.isThinking ? "animate-pulse" : ""
+      }`;
       bubble.style.whiteSpace = "pre-wrap";
-      
+
       // Add typing indicator dots for thinking messages
       if (msg.isThinking) {
         bubble.innerHTML = `
@@ -227,7 +236,9 @@ document.addEventListener("DOMContentLoaded", () => {
         // Render Markdown for bot messages; keep user messages as plain text
         if (!isUser && window.marked && window.DOMPurify) {
           try {
-            const html = window.DOMPurify.sanitize(window.marked.parse(msg.text || ""));
+            const html = window.DOMPurify.sanitize(
+              window.marked.parse(msg.text || "")
+            );
             bubble.innerHTML = html;
           } catch (_) {
             bubble.textContent = msg.text;
@@ -242,11 +253,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // Action buttons (for all messages except thinking)
       if (!msg.isThinking) {
         const actionsContainer = document.createElement("div");
-        actionsContainer.className = "flex items-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity";
+        actionsContainer.className =
+          "flex items-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity";
 
         // Copy button (for all messages)
         const copyBtn = document.createElement("button");
-        copyBtn.className = "p-1.5 rounded-lg text-gray-400 hover:bg-[#3f3f3f] hover:text-gray-200 transition-colors";
+        copyBtn.className =
+          "p-1.5 rounded-lg text-gray-400 hover:bg-[#3f3f3f] hover:text-gray-200 transition-colors";
         copyBtn.innerHTML = `
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
@@ -259,33 +272,40 @@ document.addEventListener("DOMContentLoaded", () => {
         // Retry button (only for bot messages)
         if (!isUser) {
           const retryBtn = document.createElement("button");
-          retryBtn.className = "p-1.5 rounded-lg text-gray-400 hover:bg-[#3f3f3f] hover:text-gray-200 transition-colors";
+          retryBtn.className =
+            "p-1.5 rounded-lg text-gray-400 hover:bg-[#3f3f3f] hover:text-gray-200 transition-colors";
           retryBtn.innerHTML = `
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
           `;
           retryBtn.onclick = () => {
-            // Find the last user message before this bot message
             const session = getCurrentSession();
-            const idx = session.messages.findIndex(m => m === msg);
-            let lastUserMsg = null;
+            const idx = session.messages.findIndex((m) => m === msg);
+
+            // Find the last user message before the bot message
+            let lastUserIdx = -1;
             for (let i = idx - 1; i >= 0; i--) {
               if (session.messages[i].role === "user") {
-                lastUserMsg = session.messages[i].text;
+                lastUserIdx = i;
                 break;
               }
             }
-            if (lastUserMsg) {
-              // Remove all messages after last user message
+
+            if (lastUserIdx !== -1) {
+              const lastUserMsg = session.messages[lastUserIdx].text;
+
+              // ✅ Remove all messages AFTER the user message (including the target bot message)
               session.messages = session.messages.slice(0, idx);
               saveSessions();
               renderChat();
-              // Re-send last user message
+
+              // Resend the message programmatically WITHOUT adding a new chat bubble
               queryText.value = lastUserMsg;
-              chatForm.dispatchEvent(new Event("submit"));
+              chatForm.dispatchEvent(new Event("submit", { bubbles: true }));
             }
           };
+
           actionsContainer.appendChild(retryBtn);
         }
 
@@ -294,7 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Add text container directly to message content (no avatar)
       messageContent.appendChild(textContainer);
-      
+
       messageContainer.appendChild(messageContent);
       messageWrapper.appendChild(messageContainer);
       chatWindow.appendChild(messageWrapper);
@@ -334,11 +354,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Add "Thinking..." placeholder message
     const thinkingMessageId = Date.now().toString();
-    session.messages.push({ 
-      role: "bot", 
-      text: "Thinking...", 
+    session.messages.push({
+      role: "bot",
+      text: "Thinking...",
       isThinking: true,
-      id: thinkingMessageId 
+      id: thinkingMessageId,
     });
     renderChat();
 
@@ -350,21 +370,28 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       // Remove thinking message
-      session.messages = session.messages.filter(m => m.id !== thinkingMessageId);
+      session.messages = session.messages.filter(
+        (m) => m.id !== thinkingMessageId
+      );
 
       if (!res.ok) {
-        let errorMessage = "Sorry, I'm having trouble connecting to the server. Please try again.";
-        
+        let errorMessage =
+          "Sorry, I'm having trouble connecting to the server. Please try again.";
+
         if (res.status === 429) {
-          errorMessage = "I'm getting too many requests right now. Please wait a moment and try again.";
+          errorMessage =
+            "I'm getting too many requests right now. Please wait a moment and try again.";
         } else if (res.status === 500) {
-          errorMessage = "Oops! Something went wrong on my end. Please try again in a moment.";
+          errorMessage =
+            "Oops! Something went wrong on my end. Please try again in a moment.";
         } else if (res.status === 400) {
-          errorMessage = "I didn't quite understand that request. Could you try rephrasing your question?";
+          errorMessage =
+            "I didn't quite understand that request. Could you try rephrasing your question?";
         } else if (res.status >= 500) {
-          errorMessage = "The server is currently unavailable. Please try again in a few minutes.";
+          errorMessage =
+            "The server is currently unavailable. Please try again in a few minutes.";
         }
-        
+
         session.messages.push({ role: "bot", text: errorMessage });
         saveSessions();
         renderChat();
@@ -373,7 +400,9 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await res.json();
-      const answer = data.answer || "I couldn't generate an answer. Please try asking in a different way.";
+      const answer =
+        data.answer ||
+        "I couldn't generate an answer. Please try asking in a different way.";
 
       // Add bot response
       session.messages.push({ role: "bot", text: answer });
@@ -382,21 +411,26 @@ document.addEventListener("DOMContentLoaded", () => {
       setStatus("");
     } catch (err) {
       console.error("Query error:", err);
-      
+
       // Remove thinking message if still there
-      session.messages = session.messages.filter(m => m.id !== thinkingMessageId);
-      
+      session.messages = session.messages.filter(
+        (m) => m.id !== thinkingMessageId
+      );
+
       // User-friendly error messages
-      let userFriendlyError = "I'm having trouble connecting right now. Please check your internet connection and try again.";
-      
+      let userFriendlyError =
+        "I'm having trouble connecting right now. Please check your internet connection and try again.";
+
       if (err.message.includes("Failed to fetch")) {
-        userFriendlyError = "I can't reach the server right now. Please make sure you're connected to the internet and try again.";
+        userFriendlyError =
+          "I can't reach the server right now. Please make sure you're connected to the internet and try again.";
       } else if (err.message.includes("timeout")) {
         userFriendlyError = "The request took too long. Please try again.";
       } else if (err.message.includes("NetworkError")) {
-        userFriendlyError = "Network error. Please check your connection and try again.";
+        userFriendlyError =
+          "Network error. Please check your connection and try again.";
       }
-      
+
       session.messages.push({ role: "bot", text: userFriendlyError });
       saveSessions();
       renderChat();
@@ -418,7 +452,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Only allow toggle on mobile
     if (window.innerWidth < 1024) {
       isSidebarOpen = !isSidebarOpen;
-      
+
       if (isSidebarOpen) {
         sidebar.classList.remove("-translate-x-full");
         overlay.classList.remove("hidden");
