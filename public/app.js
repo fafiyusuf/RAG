@@ -17,8 +17,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const infoModal = document.getElementById("infoModal");
   const closeInfoModal = document.getElementById("closeInfoModal");
 
+  // Add delete confirmation modal to HTML
+  const deleteModal = document.createElement("div");
+  deleteModal.id = "deleteModal";
+  deleteModal.className =
+    "hidden fixed inset-0 bg-black bg-opacity-70 z-50 flex items-center justify-center p-4";
+  deleteModal.innerHTML = `
+    <div class="bg-[#2f2f2f] rounded-lg max-w-sm w-full p-6 relative">
+      <h3 class="text-lg font-semibold text-gray-100 mb-4">Delete chat?</h3>
+      <p class="text-gray-300 text-sm mb-6">This will permanently delete this chat.</p>
+      <div class="flex justify-end gap-3">
+        <button id="cancelDelete" class="px-4 py-2 text-gray-300 hover:text-gray-100 transition-colors">Cancel</button>
+        <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Delete</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(deleteModal);
+
+  // Delete modal elements
+  const cancelDeleteBtn = document.getElementById("cancelDelete");
+  const confirmDeleteBtn = document.getElementById("confirmDelete");
+
   // Sidebar state
   let isSidebarOpen = window.innerWidth >= 1024; // Open by default on desktop
+  let sessionToDelete = null;
 
   // Info modal handlers
   if (infoBtn && infoModal && closeInfoModal) {
@@ -48,11 +70,52 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Delete modal handlers
+  if (cancelDeleteBtn && confirmDeleteBtn) {
+    cancelDeleteBtn.addEventListener("click", () => {
+      deleteModal.classList.add("hidden");
+      sessionToDelete = null;
+    });
+
+    confirmDeleteBtn.addEventListener("click", () => {
+      if (sessionToDelete) {
+        deleteSession(sessionToDelete);
+        deleteModal.classList.add("hidden");
+        sessionToDelete = null;
+      }
+    });
+
+    deleteModal.addEventListener("click", (e) => {
+      if (e.target === deleteModal) {
+        deleteModal.classList.add("hidden");
+        sessionToDelete = null;
+      }
+    });
+  }
+
   // Manage multiple chat sessions
   let sessions = JSON.parse(localStorage.getItem("chatSessions")) || [];
+  let currentSessionId = localStorage.getItem("currentSessionId");
 
-  // ALWAYS create a new session when page loads - don't continue previous sessions
-  createNewSession();
+  // FIXED: Use sessionStorage to detect if this is a fresh browser session
+  const isFreshSession = !sessionStorage.getItem("hasBeenLoaded");
+
+  if (sessions.length === 0) {
+    // No sessions exist - create first session
+    createNewSession();
+  } else if (isFreshSession) {
+    // Fresh browser/tab session - create new chat but keep history
+    sessionStorage.setItem("hasBeenLoaded", "true");
+    createNewSession();
+  } else {
+    // Page reload within same browser session - continue with current session
+    if (!currentSessionId || !sessions.find((s) => s.id === currentSessionId)) {
+      currentSessionId = sessions[0].id;
+      saveSessions();
+    }
+    renderHistoryList();
+    renderChat();
+  }
 
   // Optional: Clean up old sessions to prevent storage bloat
   if (sessions.length > 20) {
@@ -75,6 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderHistoryList();
     renderChat(); // This will show the welcome message for the fresh session
   }
+
   function saveSessions() {
     localStorage.setItem("chatSessions", JSON.stringify(sessions));
     localStorage.setItem("currentSessionId", currentSessionId);
@@ -134,9 +198,8 @@ document.addEventListener("DOMContentLoaded", () => {
       </svg>`;
       deleteBtn.onclick = (e) => {
         e.stopPropagation();
-        if (confirm("Delete this chat?")) {
-          deleteSession(session.id);
-        }
+        sessionToDelete = session.id;
+        deleteModal.classList.remove("hidden");
       };
 
       item.appendChild(titleSpan);
@@ -250,8 +313,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // Action buttons (for all messages except thinking)
       if (!msg.isThinking) {
         const actionsContainer = document.createElement("div");
-        actionsContainer.className =
-          "flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity";
+        actionsContainer.className = `flex items-center gap-1 mt-2 ${
+          isUser ? "justify-end" : "justify-start"
+        } opacity-0 group-hover:opacity-100 transition-opacity`;
 
         // Copy button (for all messages)
         const copyBtn = document.createElement("button");
@@ -344,17 +408,7 @@ document.addEventListener("DOMContentLoaded", () => {
           actionsContainer.appendChild(retryBtn);
         }
 
-        // Position action buttons based on message type
-        if (isUser) {
-          // For user messages, align buttons to the right
-          const actionsWrapper = document.createElement("div");
-          actionsWrapper.className = "flex justify-end";
-          actionsWrapper.appendChild(actionsContainer);
-          textContainer.appendChild(actionsWrapper);
-        } else {
-          // For AI messages, align buttons to the left
-          textContainer.appendChild(actionsContainer);
-        }
+        textContainer.appendChild(actionsContainer);
       }
 
       // Add text container directly to message content (no avatar)
@@ -367,6 +421,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chatWindow.scrollTop = chatWindow.scrollHeight;
   }
+
   function setStatus(text, isError = false) {
     queryStatus.textContent = text;
     queryStatus.className = `text-xs mt-2 h-4 ${
