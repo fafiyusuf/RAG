@@ -50,17 +50,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Manage multiple chat sessions
   let sessions = JSON.parse(localStorage.getItem("chatSessions")) || [];
-  let currentSessionId = localStorage.getItem("currentSessionId") || null;
 
-  // If no sessions exist, create a new one
-  if (sessions.length === 0) {
-    createNewSession();
-  } else if (
-    !currentSessionId ||
-    !sessions.find((s) => s.id === currentSessionId)
-  ) {
-    currentSessionId = sessions[0].id;
-    localStorage.setItem("currentSessionId", currentSessionId);
+  // ALWAYS create a new session when page loads - don't continue previous sessions
+  createNewSession();
+
+  // Optional: Clean up old sessions to prevent storage bloat
+  if (sessions.length > 20) {
+    sessions = sessions.slice(0, 15); // Keep only most recent 15 sessions
+    saveSessions();
   }
 
   function createNewSession() {
@@ -70,13 +67,14 @@ document.addEventListener("DOMContentLoaded", () => {
       messages: [],
       createdAt: Date.now(),
     };
+
+    // Add new session to the beginning of the array
     sessions.unshift(newSession);
     currentSessionId = newSession.id;
     saveSessions();
     renderHistoryList();
-    renderChat();
+    renderChat(); // This will show the welcome message for the fresh session
   }
-
   function saveSessions() {
     localStorage.setItem("chatSessions", JSON.stringify(sessions));
     localStorage.setItem("currentSessionId", currentSessionId);
@@ -101,16 +99,13 @@ document.addEventListener("DOMContentLoaded", () => {
   function deleteSession(sessionId) {
     sessions = sessions.filter((s) => s.id !== sessionId);
     if (currentSessionId === sessionId) {
-      if (sessions.length > 0) {
-        currentSessionId = sessions[0].id;
-      } else {
-        createNewSession();
-        return;
-      }
+      // Always create a new session when deleting current one
+      createNewSession();
+      return;
     }
     saveSessions();
     renderHistoryList();
-    renderChat();
+    // Don't call renderChat() here since createNewSession() already does it
   }
 
   function renderHistoryList() {
@@ -186,10 +181,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const welcomeDiv = document.createElement("div");
       welcomeDiv.className = "flex flex-col items-center justify-center h-full";
       welcomeDiv.innerHTML = `
-        <div class="text-center">
-          <h1 class="text-4xl font-semibold text-gray-200 mb-8">${randomMessage}</h1>
-        </div>
-      `;
+      <div class="text-center">
+        <h1 class="text-4xl font-semibold text-gray-200 mb-8">${randomMessage}</h1>
+      </div>
+    `;
       chatWindow.appendChild(welcomeDiv);
       return;
     }
@@ -198,9 +193,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const isUser = msg.role === "user";
 
       // Container for the message
-
       const messageWrapper = document.createElement("div");
-      messageWrapper.className = "w-full bg-[#212121] py-8";
+      messageWrapper.className = "w-full py-4"; // Reduced padding
 
       const messageContainer = document.createElement("div");
       messageContainer.className = "max-w-3xl mx-auto px-4 group relative";
@@ -213,25 +207,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Message text container
       const textContainer = document.createElement("div");
-      textContainer.className = isUser
-        ? "space-y-2 overflow-hidden max-w-2xl"
-        : "space-y-2 overflow-hidden max-w-2xl";
+      textContainer.className = isUser ? "max-w-2xl" : "max-w-2xl";
 
+      // Chat bubble
       const bubble = document.createElement("div");
-      bubble.className = `text-gray-100 leading-relaxed ${
+      bubble.className = `rounded-2xl px-4 py-3 leading-relaxed ${
         msg.isThinking ? "animate-pulse" : ""
+      } ${
+        isUser
+          ? "bg-[#3f3f3f] text-white" // Gray background for user messages
+          : "text-gray-100" // No background for AI messages
       }`;
       bubble.style.whiteSpace = "pre-wrap";
 
-      // Add typing indicator dots for thinking messages
+      // Add typing indicator for thinking messages (ChatGPT style)
       if (msg.isThinking) {
         bubble.innerHTML = `
-          <span class="flex gap-1 items-center">
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-            <span class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-          </span>
-        `;
+        <div class="flex space-x-1 items-center">
+          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+          <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+        </div>
+      `;
       } else {
         // Render Markdown for bot messages; keep user messages as plain text
         if (!isUser && window.marked && window.DOMPurify) {
@@ -254,17 +251,17 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!msg.isThinking) {
         const actionsContainer = document.createElement("div");
         actionsContainer.className =
-          "flex items-center gap-1 mt-3 opacity-0 group-hover:opacity-100 transition-opacity";
+          "flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity";
 
         // Copy button (for all messages)
         const copyBtn = document.createElement("button");
         copyBtn.className =
           "p-1.5 rounded-lg text-gray-400 hover:bg-[#3f3f3f] hover:text-gray-200 transition-colors";
         copyBtn.innerHTML = `
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-          </svg>
-        `;
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+        </svg>
+      `;
         copyBtn.onclick = () => handleCopy(msg.text);
 
         actionsContainer.appendChild(copyBtn);
@@ -275,11 +272,11 @@ document.addEventListener("DOMContentLoaded", () => {
           retryBtn.className =
             "p-1.5 rounded-lg text-gray-400 hover:bg-[#3f3f3f] hover:text-gray-200 transition-colors";
           retryBtn.innerHTML = `
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-          `;
-          retryBtn.onclick = () => {
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        `;
+          retryBtn.onclick = async () => {
             const session = getCurrentSession();
             const idx = session.messages.findIndex((m) => m === msg);
 
@@ -295,21 +292,69 @@ document.addEventListener("DOMContentLoaded", () => {
             if (lastUserIdx !== -1) {
               const lastUserMsg = session.messages[lastUserIdx].text;
 
-              // ✅ Remove all messages AFTER the user message (including the target bot message)
-              session.messages = session.messages.slice(0, idx);
+              // Remove the bot message we are retrying
+              session.messages = session.messages.slice(0, lastUserIdx + 1);
               saveSessions();
               renderChat();
 
-              // Resend the message programmatically WITHOUT adding a new chat bubble
-              queryText.value = lastUserMsg;
-              chatForm.dispatchEvent(new Event("submit", { bubbles: true }));
+              // Add "Thinking..." placeholder message
+              const thinkingMessageId = Date.now().toString();
+              session.messages.push({
+                role: "bot",
+                text: "Thinking...",
+                isThinking: true,
+                id: thinkingMessageId,
+              });
+              renderChat();
+
+              try {
+                const res = await fetch("/api/embeddings/query", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ query: lastUserMsg }),
+                });
+
+                session.messages = session.messages.filter(
+                  (m) => m.id !== thinkingMessageId
+                );
+
+                const data = await res.json();
+                const answer =
+                  data.answer ||
+                  "I couldn't generate an answer. Please try asking in a different way.";
+
+                session.messages.push({ role: "bot", text: answer });
+                saveSessions();
+                renderChat();
+              } catch (err) {
+                console.error("Retry error:", err);
+                session.messages = session.messages.filter(
+                  (m) => m.id !== thinkingMessageId
+                );
+                session.messages.push({
+                  role: "bot",
+                  text: "Failed to get response. Please try again.",
+                });
+                saveSessions();
+                renderChat();
+              }
             }
           };
 
           actionsContainer.appendChild(retryBtn);
         }
 
-        textContainer.appendChild(actionsContainer);
+        // Position action buttons based on message type
+        if (isUser) {
+          // For user messages, align buttons to the right
+          const actionsWrapper = document.createElement("div");
+          actionsWrapper.className = "flex justify-end";
+          actionsWrapper.appendChild(actionsContainer);
+          textContainer.appendChild(actionsWrapper);
+        } else {
+          // For AI messages, align buttons to the left
+          textContainer.appendChild(actionsContainer);
+        }
       }
 
       // Add text container directly to message content (no avatar)
@@ -322,7 +367,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chatWindow.scrollTop = chatWindow.scrollHeight;
   }
-
   function setStatus(text, isError = false) {
     queryStatus.textContent = text;
     queryStatus.className = `text-xs mt-2 h-4 ${
