@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import router from './routes/EmbeddingRoutes.js';
+import feedbackRouter from './routes/FeedbackRoutes.js';
 
 const app = express();
 const port = 3000;
@@ -38,6 +39,7 @@ app.get('/', (req, res) => {
 
 
 app.use('/api/embeddings', router);
+app.use('/api/feedback', feedbackRouter);
 
 
 
