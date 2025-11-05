@@ -12,17 +12,21 @@ export const submitFeedback = async (req, res) => {
       });
     }
 
-    // Optional: validate rating if provided
-    if (rating !== undefined && (rating < 1 || rating > 5)) {
-      return res.status(400).json({
-        success: false,
-        message: "Rating must be between 1 and 5",
-      });
+    // Validate rating only if provided
+    let validatedRating = null;
+    if (rating !== undefined && rating !== null) {
+      if (typeof rating !== "number" || rating < 1 || rating > 5) {
+        return res.status(400).json({
+          success: false,
+          message: "Rating must be a number between 1 and 5",
+        });
+      }
+      validatedRating = rating;
     }
 
     const feedback = await FeedbackModel.create({
       message: message.trim(),
-      rating: rating || null,
+      rating: validatedRating,
       userAgent: req.headers["user-agent"] || null,
     });
 
@@ -40,11 +44,11 @@ export const submitFeedback = async (req, res) => {
   }
 };
 
-// Get all feedback (GET) - for admin use via Postman
+// Get all feedback (GET)
 export const getAllFeedback = async (req, res) => {
   try {
     const feedbacks = await FeedbackModel.find({})
-      .sort({ createdAt: -1 }) // newest first
+      .sort({ createdAt: -1 })
       .lean();
 
     return res.status(200).json({
