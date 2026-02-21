@@ -516,7 +516,7 @@ User Question: ${OurQuery.query}`;
 
     // 5️⃣ Call Gemini (Generative Language API)
     const geminiApiKey = process.env.GEMINI_API_KEY || "";
-    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
 
     const payload = {
       // Standard structure requires 'role: "user"'
