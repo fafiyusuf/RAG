@@ -336,9 +336,9 @@ const queryDocument = async (req, res) => {
 
     Executive officers (2025–2026):
     - President: Bereket Aschalew
-    - Vice President: Mohammed Sadik
+    - Vice President: Remedan Jemal
     - Competitive Programming Division (CPD) Head: Kalkidan Kidane
-    - Development Division Head: Besufikad K/Mariyam
+    - Development Division Head: Lelo Mohammed
     - Cyber Security Division Head: Nikodimos Mekonen
     - Data Science Division Head: Samuel Geremew
     - Capacity Building Division (CBD) Head: Mohammed Ismail
